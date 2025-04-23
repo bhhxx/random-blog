@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cosmic Blog Teleporter</title> <!-- Title will be updated by JS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+    <style>
+        /* --- Cosmic Theme Variables --- */
+        :root {
+            --glow-blue: #00d0ff;
+            --glow-cyan: #00f2ff;
+            --glow-red: #ff4b4b;
+            --glow-green: #4bff75;
+            --glow-purple: #a65eff;
+            --deep-space: #050a1a; /* Darker background */
+            --light-space: #1a2238; /* Lighter element background */
+            --text-color: #e0e0ff; /* Light, slightly blue text */
+            --accent-color: var(--glow-cyan);
+            --border-color: rgba(0, 208, 255, 0.3); /* Faint glow border */
+            --timestamp-color: #9aace5; /* Lighter blue-gray */
+            --card-bg: rgba(26, 34, 56, 0.8); /* Semi-transparent card */
+            --input-bg: rgba(10, 15, 30, 0.9);
+            --font-primary: 'Orbitron', sans-serif; /* Futuristic font */
+            --font-secondary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif; /* Fallback */
+        }
+
+        /* --- Animations --- */
+        @keyframes pulsate {
+            0%, 100% { text-shadow: 0 0 5px var(--glow-cyan), 0 0 10px var(--glow-cyan); }
+            50% { text-shadow: 0 0 10px var(--glow-cyan), 0 0 20px var(--glow-cyan), 0 0 30px var(--glow-blue); }
+        }
+        @keyframes subtlePulse {
+             0%, 100% { box-shadow: 0 0 10px -2px var(--border-color); }
+             50% { box-shadow: 0 0 15px 0px var(--border-color); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-4px, 1px) rotate(-0.5deg); }
+            20%, 40%, 60%, 80% { transform: translate(4px, -1px) rotate(0.5deg); }
+        }
+
+        /* --- Base Styles --- */
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-secondary);
+            background-color: var(--deep-space);
+             /* --- Background image is dynamically set via inline style in the <body> tag by Flask/Jinja2 --- */
+             /* Remove the static CSS background image rule */
+            /* background-image: linear-gradient(rgba(5, 10, 26, 0.85), rgba(5, 10, 26, 0.98)), url('/static/images/space_background.jpg'); */
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+            color: var(--text-color);
+            margin: 0; padding: 25px; min-height: 100vh; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center;
+            animation: fadeIn 1s ease-out; overflow-x: hidden;
+        }
+        body.teleporting { animation: screenShake 0.4s ease-in-out; }
+
+        .container { max-width: 650px; width: 100%; margin: 0 auto; position: relative; }
+        h1 {
+            color: var(--glow-cyan); font-family: var(--font-primary); font-weight: 700;
+            text-align: center; margin: 30px 0 40px 0; font-size: 32px;
+            letter-spacing: 1.5px; animation: pulsate 4s infinite ease-in-out;
+            text-transform: uppercase;
+            user-select: text; cursor: default;
+        }
+
+        /* --- Input Groups (Cards) --- */
+        .input-group {
+            background: var(--card-bg); border-radius: 10px; margin-bottom: 25px;
+            padding: 20px 25px; border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px -5px rgba(0, 208, 255, 0.2);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            transition: box-shadow 0.3s ease;
+            animation: subtlePulse 6s infinite ease-in-out alternate;
+        }
+        .input-group:hover { box-shadow: 0 0 20px -3px rgba(0, 208, 255, 0.4); }
+        .input-group h2 {
+            margin-top: 0; margin-bottom: 20px; color: var(--accent-color);
+            font-family: var(--font-primary); font-size: 22px; font-weight: 600;
+            text-align: center; border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px; text-shadow: 0 0 5px rgba(0, 208, 255, 0.5);
+            letter-spacing: 1px;
+        }
+
+        /* --- Language Switcher --- */
+         .language-switcher {
+             padding: 10px 15px; margin-bottom: 15px; background: rgba(10, 15, 30, 0.7);
+             border-color: rgba(120, 120, 180, 0.3); box-shadow: none;
+             animation: none; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+         }
+        .lang-btn {
+            font-family: var(--font-secondary); padding: 8px 15px; font-size: 14px;
+            font-weight: 500; flex-grow: 0; background-color: transparent;
+            border: 1px solid var(--timestamp-color); color: var(--timestamp-color);
+            text-transform: none; letter-spacing: 0; border-radius: 5px;
+            cursor: pointer; transition: all 0.2s ease-in-out;
+         }
+        .lang-btn.active {
+            background-color: var(--glow-cyan); color: var(--deep-space);
+            border-color: var(--glow-cyan); box-shadow: 0 0 8px var(--glow-cyan);
+            font-weight: 700;
+         }
+        .lang-btn:not(.active):hover { background-color: var(--light-space); color: var(--text-color); }
+
+        /* --- Inputs --- */
+        input[type="text"], input[type="url"], input[type="password"] {
+            width: 100%; padding: 15px; background-color: var(--input-bg);
+            border: 1px solid var(--border-color); border-radius: 5px;
+            font-size: 16px; margin-bottom: 15px; box-sizing: border-box;
+            color: var(--text-color); font-family: var(--font-secondary);
+            caret-color: var(--glow-cyan); transition: border-color 0.3s ease, box-shadow 0.3s ease;
+         }
+        input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active {
+             -webkit-box-shadow: 0 0 0 30px var(--input-bg) inset !important;
+             -webkit-text-fill-color: var(--text-color) !important;
+             caret-color: var(--glow-cyan) !important; border: 1px solid var(--border-color);
+         }
+        input:focus {
+             outline: none; border-color: var(--glow-cyan);
+             box-shadow: 0 0 10px var(--glow-cyan), inset 0 0 5px rgba(0, 208, 255, 0.3);
+        }
+
+        /* --- Buttons --- */
+        .button-group { display: flex; gap: 15px; }
+        .action-button-group { flex-direction: row; justify-content: space-between; margin-top: 10px; }
+        .action-button-group button { flex-grow: 1; }
+        .random-button-group { flex-direction: column; }
+        button {
+            font-family: var(--font-primary); padding: 15px 20px; border-radius: 5px;
+            border: 1px solid transparent; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: all 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+            -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+            text-transform: uppercase; letter-spacing: 1px;
+         }
+        button::before { /* Shiny hover effect */
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease; pointer-events: none;
+         }
+        button:hover::before { left: 100%; }
+        button:active { transform: scale(0.97); box-shadow: inset 0 0 10px rgba(0,0,0,0.3); }
+        .primary-btn {
+            background: linear-gradient(45deg, var(--glow-blue), var(--glow-cyan));
+            color: var(--deep-space); border-color: var(--glow-cyan); text-shadow: none;
+         }
+        .primary-btn:hover { box-shadow: 0 0 15px var(--glow-cyan), 0 0 25px var(--glow-cyan); }
+        .secondary-btn {
+            background-color: var(--light-space); color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+         }
+        .secondary-btn:hover {
+             background-color: var(--accent-color); color: var(--deep-space);
+             box-shadow: 0 0 12px var(--accent-color);
+        }
+        .danger-btn {
+            background-color: transparent; color: var(--glow-red);
+            border: 1px solid var(--glow-red);
+         }
+        .danger-btn:hover {
+            background-color: var(--glow-red); color: white;
+            box-shadow: 0 0 15px var(--glow-red); text-shadow: 0 0 5px black;
+        }
+
+        /* --- URL List (Stargate List) --- */
+        .url-list-container {
+            border-color: var(--glow-purple);
+            box-shadow: 0 0 15px -5px rgba(166, 94, 255, 0.3);
+         }
+        .url-list-container h2 {
+            color: var(--glow-purple); border-bottom-color: rgba(166, 94, 255, 0.3);
+            text-shadow: 0 0 5px rgba(166, 94, 255, 0.5);
+         }
+        .url-card {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 5px; border-bottom: 1px solid rgba(166, 94, 255, 0.2);
+            font-size: 15px; gap: 15px; position: relative; overflow: hidden;
+         }
+        .url-card::before, .url-card::after { /* Subtle hover indicators */
+            position: absolute; top: 50%; transform: translateY(-50%);
+            color: var(--glow-purple); font-size: 20px; font-weight: bold;
+            opacity: 0; transition: all 0.3s ease; pointer-events: none;
+        }
+        .url-card::before { content: '['; left: -10px; }
+        .url-card::after { content: ']'; right: -10px; }
+        .url-card:hover::before { left: 5px; opacity: 0.7; }
+        .url-card:hover::after { right: 5px; opacity: 0.7; }
+        .url-card:last-child { border-bottom: none; }
+        .url-card a {
+            color: var(--glow-cyan); text-decoration: none; font-weight: 500;
+            word-break: break-all; flex-grow: 1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            padding-left: 25px; padding-right: 25px;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        .url-card a:hover { color: #fff; text-shadow: 0 0 8px var(--glow-cyan); }
+        .url-card .timestamp {
+            color: var(--timestamp-color); font-size: 13px; white-space: nowrap;
+            flex-shrink: 0; font-family: var(--font-secondary);
+        }
+
+        /* --- Message Area (Console Output) --- */
+         #message, .sidebar-error-message {
+             font-family: 'Courier New', Courier, monospace; border-radius: 4px;
+             font-size: 15px; margin-top: 20px; margin-bottom: 20px;
+             text-align: left; padding: 12px 18px; border-left: 5px solid;
+             line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+             background-color: rgba(10, 15, 30, 0.85);
+         }
+         #message { /* Main message area */
+             display: none; opacity: 0; width: 100%; box-sizing: border-box;
+             transition: opacity 0.3s ease-in-out;
+         }
+         .sidebar-error-message { /* Password error area */
+             display: none; text-align: center;
+             margin-bottom: 15px; padding: 10px 15px;
+             color: var(--glow-red); border-left-color: var(--glow-red);
+             border: 1px solid var(--glow-red); border-left-width: 5px;
+         }
+         #message.info-message { color: var(--glow-cyan); border-left-color: var(--glow-cyan); }
+         #message.success-message { color: var(--glow-green); border-left-color: var(--glow-green); }
+         #message.error-message { color: var(--glow-red); border-left-color: var(--glow-red); }
+         /* Password error already styled */
+
+         #message a { /* Style links within the message area */
+             color: var(--glow-cyan); font-weight: bold; text-decoration: underline;
+             word-break: break-all; transition: color 0.2s, text-shadow 0.2s;
+         }
+         #message a:hover { color: #fff; text-shadow: 0 0 5px var(--glow-cyan); }
+
+    </style>
+</head>
+{# --- Apply background using inline style passed from Flask --- #}
+<body {% if background_image_url %} style="background-image: linear-gradient(rgba(5, 10, 26, 0.85), rgba(5, 10, 26, 0.98)), url('{{ background_image_url | replace('\\', '/') | safe }}');" {% endif %}>
+
+    <div class="container">
+        <h1 data-translate="title">Cosmic Blog Teleporter</h1>
+
+        <!-- Language Switcher -->
+        <div class="language-switcher input-group">
+             <div class="button-group action-button-group">
+                <button id="lang-en-btn" class="secondary-btn lang-btn" onclick="setLanguage('en')">English</button>
+                <button id="lang-zh-btn" class="secondary-btn lang-btn active" onclick="setLanguage('zh')">中文</button> {# Assume zh default #}
+            </div>
+        </div>
+
+        <!-- Random Access Section (Teleporter Controls) -->
+        <div class="input-group" id="teleporter-controls">
+            <h2 data-translate="engageTitle">Engage Teleporter</h2>
+            <div class="button-group random-button-group">
+                <button class="primary-btn activate-btn" data-translate="randomArticleBtn" onclick="triggerTeleport('blog')">Hyperspace Jump (Random Article)</button>
+                <button class="secondary-btn activate-btn" data-translate="randomSiteBtn" onclick="triggerTeleport('site')">Warp Scan (Random Site)</button>
+            </div>
+        </div>
+
+        <!-- Message Display Area (Console Output) -->
+        <div id="message"></div> <!-- General status messages appear here -->
+
+        <!-- COMBINED Add/Delete Section (Navigation Console) -->
+        <div class="input-group" id="nav-console">
+            <h2 data-translate="navConsoleTitle">Navigation Console</h2>
+            <!-- Dedicated error display for this section's password errors -->
+            <p id="passwordErrorMessage" class="sidebar-error-message" style="display: none;"></p>
+
+            <input type="url" id="manageUrlInput" data-translate-placeholder="urlPlaceholder" placeholder="Enter Target Coordinates (URL)" required>
+            <!-- Shared Password Input -->
+            <input type="password" id="managePasswordInput" data-translate-placeholder="passwordPlaceholder" placeholder="Enter Access Code (Password)" required>
+
+            <div class="button-group action-button-group">
+                <button class="primary-btn" data-translate="addBtn" onclick="addOrDeleteUrl('add')">Log Coordinates (Add)</button>
+                <button class="danger-btn" data-translate="deleteBtn" onclick="addOrDeleteUrl('delete')">Erase Coordinates (Delete)</button>
+            </div>
+        </div>
+
+
+        <!-- Saved URLs List Section (Stargate Address List) -->
+        <div class="input-group url-list-container" id="stargate-list">
+            <h2 data-translate="savedTitle">Saved Coordinates</h2>
+            <div id="urlList">
+                {# Use the urls_data passed from Flask backend #}
+                {% if urls_data %}
+                    {% for entry in urls_data %}
+                    {% if entry and 'url' in entry and 'added_at' in entry %}
+                    <div class="url-card" data-url="{{ entry.url }}" data-timestamp="{{ entry.added_at }}">
+                        <a href="{{ entry.url }}" target="_blank" rel="noopener noreferrer" title="{{ entry.url }}">Loading Coordinates...</a>
+                        <span class="timestamp" data-translate-prefix="timestampPrefix">Log Time: Loading...</span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p style="color: var(--timestamp-color); text-align: center; font-family: monospace;" data-translate="emptyList">Coordinate database empty.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- NEW: Background Control Section (Visual Interface Console) -->
+        <div class="input-group" id="bg-console">
+            <h2 data-translate="bgConsoleTitle">Visual Interface Console</h2>
+            <!-- Password errors will appear in #passwordErrorMessage above -->
+
+            <input type="text" id="bgUrlInput" data-translate-placeholder="bgUrlPlaceholder" placeholder="Enter Background Image URL or Path">
+            <!-- Password input is shared from the section above -->
+
+            <div class="button-group action-button-group">
+                <button class="primary-btn" data-translate="bgSetBtn" onclick="manageBackground('set')">Set Background</button>
+                <button class="danger-btn" data-translate="bgResetBtn" onclick="manageBackground('reset')">Reset Background</button>
+            </div>
+        </div>
+    </div><!-- End .container -->
+
+<script>
+    // --- Element References ---
+    const manageUrlInput = document.getElementById('manageUrlInput');
+    const managePasswordInput = document.getElementById('managePasswordInput'); // Shared password input
+    const bgUrlInput = document.getElementById('bgUrlInput'); // <<< NEW: Background URL/Path input
+    const messageElement = document.getElementById('message'); // Main status message display
+    const passwordErrorElement = document.getElementById('passwordErrorMessage'); // Dedicated password error display
+    const urlListDiv = document.getElementById('urlList');
+    const langEnBtn = document.getElementById('lang-en-btn');
+    const langZhBtn = document.getElementById('lang-zh-btn');
+    const pageTitleElement = document.querySelector('title');
+    let messageTimeout; // Timer for hiding messages
+    let teleportTimeout; // Timer for screen shake animation
+
+    // --- Translations Object (Frontend) ---
+    const translations = {
+        en: {
+            pageTitle: "Cosmic Blog Teleporter", title: "Cosmic Blog Teleporter",
+            engageTitle: "Engage Teleporter", randomArticleBtn: "Hyperspace Jump (Random Article)", randomSiteBtn: "Warp Scan (Random Site)",
+            navConsoleTitle: "Navigation Console", urlPlaceholder: "Enter Target Coordinates (URL)", passwordPlaceholder: "Enter Access Code (Password)",
+            addBtn: "Log Coordinates (Add)", deleteBtn: "Erase Coordinates (Delete)",
+            savedTitle: "Saved Coordinates", emptyList: "Coordinate database empty.", timestampPrefix: "Logged:",
+            loading: "Processing...", accessDenied: "ACCESS DENIED", notFound: "Coordinates not found", alreadyLogged: "Coordinates already logged",
+            opSuccess: "Operation successful.", criticalError: "Critical Error", connError: "Cannot establish connection",
+            invalidDest: "Invalid destination vector received", noOrigin: "No valid origin point found",
+            reloading: "Configuration updated. Reloading interface...", malfunction: "Teleporter malfunction",
+            addConfirm: "Logging Sequence Confirmed", deleteConfirm: "Erasing Sequence Confirmed", addInfo: "Logging Sequence - Already Logged",
+            deleteError: "Erasing Sequence Failed", addError: "Logging Sequence Failed",
+            jumpSuccess: "Hyperspace Jump Successful! Destination Vector:", scanSuccess: "Warp Scan Complete. Target Coordinates Locked:",
+            // <<< NEW: Background Translations
+            bgConsoleTitle: "Visual Interface Console", bgUrlPlaceholder: "Enter Background Image URL or Path",
+            bgSetBtn: "Set Background", bgResetBtn: "Reset Background",
+            bg_set_success: "Visuals Updated.", bg_set_error: "Visual Update Failed.",
+            bg_url_required: "Specify Visual Source (URL/Path).", bg_reset_success: "Visuals Reset to Default.",
+            bg_reset_error: "Visual Reset Failed.", invalid_bg_url: "Invalid Visual Source Format.",
+            passwordRequired: "Access Code Required.",
+            invalidAction: "Unknown Command.",
+            invalid_url_format: "Invalid Coordinate Format (http/https required)."
+        },
+        zh: { // <<< Ensure Chinese translations are also present
+            pageTitle: "宇宙博客传送器", title: "宇宙博客传送器",
+            engageTitle: "启动传送器", randomArticleBtn: "超空间跳跃 (随机文章)", randomSiteBtn: "曲速扫描 (随机站点)",
+            navConsoleTitle: "导航控制台", urlPlaceholder: "输入目标坐标 (URL)", passwordPlaceholder: "输入访问代码 (密码)",
+            addBtn: "记录坐标 (添加)", deleteBtn: "擦除坐标 (删除)",
+            savedTitle: "已存坐标", emptyList: "坐标数据库为空。", timestampPrefix: "记录于:",
+            loading: "处理中...", accessDenied: "访问被拒绝", notFound: "未找到坐标", alreadyLogged: "坐标已记录",
+            opSuccess: "操作成功。", criticalError: "严重错误", connError: "无法建立连接",
+            invalidDest: "收到无效的目的地矢量", noOrigin: "未找到有效的起始点",
+            reloading: "配置已更新。正在重载界面...", malfunction: "传送器故障",
+            addConfirm: "记录序列已确认", deleteConfirm: "擦除序列已确认", addInfo: "记录序列 - 坐标已存在",
+            deleteError: "擦除序列失败", addError: "记录序列失败",
+            jumpSuccess: "超空间跳跃成功！目标矢量：", scanSuccess: "曲速扫描完成。目标坐标锁定：",
+            // <<< NEW: Background Translations (Chinese)
+            bgConsoleTitle: "视觉接口控制台", bgUrlPlaceholder: "输入背景图片 URL 或路径",
+            bgSetBtn: "设置背景", bgResetBtn: "重置背景",
+            bg_set_success: "视觉效果已更新。", bg_set_error: "视觉效果更新失败。",
+            bg_url_required: "请提供视觉来源 (URL/路径)。", bg_reset_success: "视觉效果已重置为默认。",
+            bg_reset_error: "视觉效果重置失败。", invalid_bg_url: "无效的视觉来源格式。",
+            passwordRequired: "需要访问代码。",
+            invalidAction: "未知指令。",
+            invalid_url_format: "坐标格式无效 (需 http/https)。"
+        }
+    };
+    let currentLang = 'zh'; // Default language
+
+    // --- Language Management ---
+    function setLanguage(lang) {
+        if (!translations[lang]) return;
+        currentLang = lang;
+        localStorage.setItem('blogTeleporterLang', lang);
+        const langDict = translations[lang];
+
+        if(pageTitleElement && langDict.pageTitle) pageTitleElement.textContent = langDict.pageTitle;
+        document.querySelectorAll('[data-translate]').forEach(el => {
+            const key = el.dataset.translate; if (langDict[key]) el.textContent = langDict[key];
+        });
+        document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+            const key = el.dataset.translatePlaceholder; if (langDict[key]) el.placeholder = langDict[key];
+        });
+        langEnBtn.classList.toggle('active', lang === 'en');
+        langZhBtn.classList.toggle('active', lang === 'zh');
+        processUrlList();
+    }
+
+    // --- User Feedback ---
+    function showMessage(text, type = 'info', duration = 8000) {
+        clearTimeout(messageTimeout);
+        let messageClass = 'info-message';
+        if (type === 'success') messageClass = 'success-message';
+        if (type === 'error') messageClass = 'error-message';
+        messageElement.className = messageClass;
+        messageElement.innerHTML = `> ${text.replace(/\n/g, '<br>> ')}`;
+        messageElement.style.display = 'block';
+        void messageElement.offsetWidth; // Trigger reflow
+        messageElement.style.opacity = 1;
+        if (duration > 0) {
+            messageTimeout = setTimeout(() => {
+                messageElement.style.opacity = 0;
+                setTimeout(() => { if (messageElement.style.opacity === '0') messageElement.style.display = 'none'; }, 300);
+            }, duration);
+        }
+    }
+
+     // --- Utilities ---
+     function isValidUrlFormat(string) { // Stricter check for blog URLs
+         return string && (string.trim().startsWith('http://') || string.trim().startsWith('https://'));
+     }
+     // <<< NEW: Validation for background source (allows relative paths)
+     function isValidBgSource(string) {
+         const trimmed = string ? string.trim() : '';
+         return trimmed && (
+             trimmed.startsWith('http://') || trimmed.startsWith('https://') ||
+             trimmed.startsWith('/') || trimmed.includes('/') || trimmed.includes('.')
+         );
+     }
+     function clearPasswordError(errorElement = passwordErrorElement) {
+         if (errorElement) {
+            errorElement.style.display = 'none';
+            errorElement.textContent = '';
+         }
+     }
+
+    // --- API Interaction ---
+    // <<< UPDATED: handleApiRequest to trigger reload on background success
+    async function handleApiRequest(endpoint, formData, inputsToClear, errorDisplayElement = passwordErrorElement) {
+        const langDict = translations[currentLang];
+        showMessage(langDict.loading, 'info', 0);
+        clearPasswordError(errorDisplayElement);
+        let response = null;
+
+        try {
+            response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded", "X-App-Language": currentLang },
+                body: formData.toString()
+            });
+
+            let data = { message: langDict.criticalError || 'Error' };
+            try {
+                data = await response.json();
+                if (!data.message) data.message = response.ok ? langDict.opSuccess : langDict.criticalError;
+            } catch (e) {
+                 console.warn(`Invalid JSON response from ${endpoint}:`, e);
+                 if (response && !response.ok) {
+                     const status = response.status;
+                     if (status === 401) data.message = langDict.accessDenied;
+                     else if (status === 404) data.message = langDict.notFound;
+                     else if (status === 409) data.message = langDict.alreadyLogged;
+                     else if (status === 400) data.message = `${langDict.criticalError} (Code: 400)`;
+                     else data.message = `${langDict.criticalError} (Status: ${status})`;
+                 } else { data.message = `${langDict.criticalError} (Invalid Response Format)`; }
+            }
+
+            if (!response.ok) {
+                 if (response.status === 401) {
+                    const backendMsg = data.message || langDict.accessDenied;
+                    let displayMsg = backendMsg.includes("https://github.com/bhhxx/random-blog") ? backendMsg : (langDict.accessDenied || "ACCESS DENIED");
+                     if (errorDisplayElement) {
+                        errorDisplayElement.innerHTML = `## ${displayMsg.replace(/\n/g, '<br>')} ##`;
+                        errorDisplayElement.style.display = 'block';
+                     } else { showMessage(displayMsg, 'error'); }
+                     messageElement.style.display = 'none'; messageElement.style.opacity = 0;
+                 } else {
+                     let errorKey = data.message;
+                     if (response.status === 400) { // Map specific 400 errors if possible
+                         if (errorKey.includes('invalid_url_format') && langDict.invalid_url_format) errorKey = langDict.invalid_url_format;
+                         else if (errorKey.includes('url_required') && langDict.url_required) errorKey = langDict.url_required;
+                         else if (errorKey.includes('bg_url_required') && langDict.bg_url_required) errorKey = langDict.bg_url_required;
+                         else if (errorKey.includes('invalid_bg_url') && langDict.invalid_bg_url) errorKey = langDict.invalid_bg_url;
+                         else if (errorKey.includes('invalid_action') && langDict.invalidAction) errorKey = langDict.invalidAction;
+                     }
+                     showMessage(errorKey, 'error');
+                 }
+                 if (response.status !== 409 && response.status !== 400) throw new Error(data.message || `HTTP Error ${response.status}`);
+            } else {
+                 const messageType = response.status === 409 ? 'info' : 'success';
+                 showMessage(data.message, messageType);
+
+                 // <<< UPDATED: Reload condition includes successful background change (status 200 from /set_background)
+                 const shouldReload = response.status === 201 || (response.status === 200 && ['/delete_url', '/set_background'].includes(endpoint));
+                 if (shouldReload) {
+                    showMessage(langDict.reloading, messageType, 1600);
+                    setTimeout(() => location.reload(), 1500); // Reload page to apply changes
+                 } else {
+                     if (inputsToClear?.urlInput) inputsToClear.urlInput.value = '';
+                     // Don't clear password on non-reloading success
+                 }
+            }
+        } catch (error) {
+            console.error(`API request failed for ${endpoint}:`, error);
+             if (errorDisplayElement && errorDisplayElement.style.display === 'none') {
+                 showMessage(`${langDict.criticalError}: ${error.message || langDict.connError}`, 'error');
+             } else if (!errorDisplayElement) {
+                 showMessage(`${langDict.criticalError}: ${error.message || langDict.connError}`, 'error');
+             }
+            if (inputsToClear?.passwordInput) inputsToClear.passwordInput.value = '';
+            return false;
+        } finally {
+            // Optional: Clear password on non-409/400 errors
+            // if (inputsToClear?.passwordInput && response && !response.ok && response.status !== 409 && response.status !== 400) {
+            //     inputsToClear.passwordInput.value = '';
+            // }
+        }
+        return response ? response.ok : false; // Return true only for 2xx status
+    }
+
+    // --- Feature: Add/Delete URLs ---
+    async function addOrDeleteUrl(action) {
+        const url = manageUrlInput.value.trim();
+        const password = managePasswordInput.value;
+        const langDict = translations[currentLang];
+
+        if (!url) { showMessage(`${langDict.criticalError}: ${langDict.urlPlaceholder}.`, 'error'); manageUrlInput.focus(); return; }
+        if (!isValidUrlFormat(url)) { showMessage(`${langDict.invalid_url_format}`, 'error'); manageUrlInput.focus(); return; }
+        if (!password) { showMessage(`${langDict.criticalError}: ${langDict.passwordRequired}`, 'error'); managePasswordInput.focus(); return; }
+
+        const endpoint = action === 'add' ? '/add_url' : '/delete_url';
+        const formData = new URLSearchParams({ url, password });
+        handleApiRequest( endpoint, formData, { urlInput: manageUrlInput, passwordInput: managePasswordInput }, passwordErrorElement );
+    }
+
+    // <<< NEW: Function to Manage Background Image
+    async function manageBackground(action) {
+        const bgUrl = bgUrlInput.value.trim();
+        const password = managePasswordInput.value; // Use shared password input
+        const langDict = translations[currentLang];
+
+        // Password is always required
+        if (!password) {
+            showMessage(`${langDict.criticalError}: ${langDict.passwordRequired}`, 'error');
+            managePasswordInput.focus(); return;
+        }
+
+        const formData = new URLSearchParams({ password, action }); // Base form data
+
+        // For 'set' action, validate and add the URL/Path
+        if (action === 'set') {
+            if (!bgUrl) {
+                 showMessage(`${langDict.criticalError}: ${langDict.bg_url_required}`, 'error');
+                 bgUrlInput.focus(); return;
+            }
+            // Use broader validation for background source
+            if (!isValidBgSource(bgUrl)) {
+                 showMessage(`${langDict.criticalError}: ${langDict.invalid_bg_url}`, 'error');
+                 bgUrlInput.focus(); return;
+            }
+            formData.append('url', bgUrl); // Add URL only for 'set' action
+        }
+
+        // Call API handler for the background endpoint
+        handleApiRequest(
+            '/set_background',
+            formData,
+            { urlInput: bgUrlInput, passwordInput: managePasswordInput }, // Inputs to potentially clear
+            passwordErrorElement // Where to display auth errors
+        );
+    }
+
+    // --- Feature: Display URL List ---
+    function formatTimestamp(isoString) {
+        if (!isoString) return '?';
+        try {
+            const date = new Date(isoString);
+            const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+            const locale = currentLang.startsWith('zh') ? 'zh-CN' : 'en-US';
+            return date.toLocaleString(locale, options);
+        } catch (e) { return 'Invalid Date'; }
+    }
+    function extractSiteName(url) {
+        if (!url) return translations[currentLang].criticalError || 'Invalid URL';
+        try {
+            const hostname = new URL(url).hostname;
+            return hostname.replace(/^www\./i, '');
+        } catch (e) { return url.length > 35 ? url.substring(0, 32) + '...' : url; }
+    }
+    function processUrlList() {
+        const urlCards = urlListDiv.querySelectorAll('.url-card');
+        const emptyP = urlListDiv.querySelector('p[data-translate="emptyList"]');
+        const langDict = translations[currentLang];
+        if (emptyP) { emptyP.textContent = langDict.emptyList; emptyP.style.display = urlCards.length > 0 ? 'none' : 'block'; }
+        if (urlCards.length === 0) return;
+        const timestampPrefix = langDict.timestampPrefix || "Logged:";
+        urlCards.forEach(card => {
+            const url = card.dataset.url; const timestamp = card.dataset.timestamp;
+            const linkElement = card.querySelector('a'); const timeElement = card.querySelector('.timestamp');
+            if (linkElement) { linkElement.textContent = extractSiteName(url); linkElement.href = url; try { linkElement.title = decodeURIComponent(url); } catch (e) { linkElement.title = url; } }
+            if (timeElement) { timeElement.textContent = `${timestampPrefix} ${formatTimestamp(timestamp)}`; }
+        });
+    }
+
+    // --- Feature: Random Teleport ---
+    function triggerTeleport(type) {
+        clearTimeout(teleportTimeout); document.body.classList.add('teleporting');
+        teleportTimeout = setTimeout(() => { document.body.classList.remove('teleporting'); }, 400);
+        if (type === 'blog') getRandomBlog(); else if (type === 'site') getRandomSite();
+    }
+    async function getRandomBlog() {
+        const langDict = translations[currentLang]; showMessage(`${langDict.engageTitle}...`, 'info', 0); clearPasswordError();
+        try {
+            const response = await fetch("/random_blog", { headers: { "X-App-Language": currentLang } }); const data = await response.json();
+            if (!response.ok) { const source = data?.source_site ? ` (Origin: ${data.source_site})` : ''; throw new Error(`${data?.message || langDict.connError}${source}`); }
+            if (data.blog_url) {
+                 let displayUrl = data.blog_url; try { displayUrl = decodeURIComponent(data.blog_url); } catch (e) {}
+                 const sourceSite = data.source_site || 'Unknown';
+                 const successMsg = `${langDict.jumpSuccess}<br><a href="${data.blog_url}" target="_blank" rel="noopener noreferrer" title="${displayUrl}">${displayUrl}</a><br>(Origin: ${sourceSite})`;
+                 showMessage(successMsg, 'success', 15000);
+            } else { throw new Error(`${langDict.malfunction}: ${langDict.invalidDest}.`); }
+        } catch (error) { console.error("Random Blog error:", error); showMessage(`${langDict.criticalError}: ${error.message}`, 'error'); }
+    }
+     async function getRandomSite() {
+        const langDict = translations[currentLang]; showMessage(`Initiating Warp Scan...`, 'info', 0); clearPasswordError();
+        try {
+            const response = await fetch("/random_url", { headers: { "X-App-Language": currentLang } }); const data = await response.json();
+            if (!response.ok) { const source = data?.source_site ? ` (Origin: ${data.source_site})` : ''; throw new Error(`${data?.message || langDict.noOrigin}${source}`); }
+            if (data.blog_url) {
+                 let displayUrl = data.blog_url; try { displayUrl = decodeURIComponent(data.blog_url); } catch (e) {}
+                 const successMsg = `${langDict.scanSuccess}<br><a href="${data.blog_url}" target="_blank" rel="noopener noreferrer" title="${displayUrl}">${displayUrl}</a>`;
+                 showMessage(successMsg, 'success', 15000);
+            } else { throw new Error(`${langDict.malfunction}: ${langDict.noOrigin}.`); }
+        } catch (error) { console.error("Random Site error:", error); showMessage(`${langDict.criticalError}: ${error.message}`, 'error'); }
+    }
+
+    // --- Event Listeners Setup ---
+    // <<< UPDATED: Added listeners for background input and modified password input listener
+    function setupEventListeners() {
+        manageUrlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); managePasswordInput.focus(); } });
+        bgUrlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); managePasswordInput.focus(); } }); // <<< NEW
+        managePasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Prioritize background set if that input has value
+                if (bgUrlInput.value.trim()) manageBackground('set');
+                // Otherwise, default to URL add if that input has value
+                else if (manageUrlInput.value.trim()) addOrDeleteUrl('add');
+            }
+        });
+    }
+
+    // --- Initial Setup on Page Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedLang = localStorage.getItem('blogTeleporterLang');
+        const initialLang = translations[savedLang] ? savedLang : 'zh';
+        setLanguage(initialLang);
+        setupEventListeners(); // <<< Attach event listeners
+        processUrlList(); // <<< Process list on load
+        // Initial background is set by server via inline style
+    });
+
+</script>
+</body>
+</html>

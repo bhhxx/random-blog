@@ -1,0 +1,3 @@
+# requirements.txt
+Flask
+gunicorn  # 推荐用于生产环境
